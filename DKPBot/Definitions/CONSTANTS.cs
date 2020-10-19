@@ -8,8 +8,8 @@ namespace DKPBot.Definitions
 {
     internal static class CONSTANTS
     {
-        internal static readonly string DATA_DIR = @"Data";
         internal const string TOKEN_PATH = @"Data\DiscordAuthToken.txt";
+        internal static readonly string DATA_DIR = @"Data";
         internal static readonly Graphics GRAPHICS;
         internal static readonly Font WHITNEY_FONT;
         internal static readonly double SPACE_LENGTH;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Discord;
@@ -30,7 +31,8 @@ namespace DKPBot.Model
             CommandService.CommandExecuted += CommandService_CommandExecuted;
         }
 
-        internal static Task ConfigureAsync(IServiceProvider provider) => CommandService.AddModulesAsync(Assembly.GetExecutingAssembly(), provider);
+        internal static Task ConfigureAsync(IServiceProvider provider) =>
+            CommandService.AddModulesAsync(Assembly.GetExecutingAssembly(), provider);
 
         private static Task CommandService_CommandExecuted(Optional<CommandInfo> commandInfo, ICommandContext context, IResult result)
         {
@@ -69,6 +71,25 @@ namespace DKPBot.Model
                     Log.Error(
                         $"{Environment.NewLine}{Environment.NewLine}UNKNOWN EXCEPTION - SEVERE{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}");
                 }
+        }
+
+        internal static Embed CreateHelpEmbed(SettingsService settings)
+        {
+            var commands = CommandService.Commands.ToList();
+            var embedBuilder = new EmbedBuilder();
+
+            embedBuilder.AddField($"Current Prefix: ", settings.Prefix, true);
+
+            foreach (var command in commands)
+            {
+                // Get the command Summary attribute information
+                var embedFieldText = command.Summary ?? "No description available\n";
+
+                embedBuilder.AddField($@"{command.Name} {string.Join(", ", command.Parameters.Select(param => $@"<{param.Name}>"))}",
+                    embedFieldText);
+            }
+
+            return embedBuilder.Build();
         }
     }
 }

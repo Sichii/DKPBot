@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
 using DKPBot.Definitions;
+using NLog;
 
 namespace DKPBot.Discord.Attributes
 {
@@ -13,14 +14,21 @@ namespace DKPBot.Discord.Attributes
     {
         private readonly Privilege Privilege;
 
-        internal RequirePrivilege(Privilege privilege) => Privilege = privilege;
+        /// <summary>
+        ///     Required a user to have certain privileges to execute a command or module.
+        /// </summary>
+        /// <param name="privilege">See <see cref="Definitions.Privilege"/> for details</param>
+        internal RequirePrivilege(Privilege privilege)
+        {
+            Log = LogManager.GetLogger($@"{nameof(RequirePrivilege)}:{privilege}");
+            Privilege = privilege;
+        }
 
         public override Task<PreconditionResult> CheckPermissionsAsync(
             ICommandContext context, CommandInfo command, IServiceProvider services)
         {
             var user = (SocketGuildUser) context.User;
-            ErrorMessage =
-                $"{user.Username} does not have the required privilege({Privilege}) to run this command({command.Name}).";
+            ErrorMessage = $"{user.Username} does not have the required privilege({Privilege}) to run this command({command.Name}).";
 
             return Privilege switch
             {

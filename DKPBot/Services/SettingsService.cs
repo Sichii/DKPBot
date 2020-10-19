@@ -12,12 +12,17 @@ namespace DKPBot.Services
         [JsonIgnore]
         private readonly string SettingsPath;
 
-        [JsonIgnore]
-        public Logger Log { get; }
         [JsonProperty]
         public ulong GuildId { get; set; }
+
         [JsonProperty]
         internal string Prefix { get; set; }
+
+        [JsonProperty]
+        internal string DKPPoolName { get; set; }
+
+        [JsonIgnore]
+        public Logger Log { get; }
 
         [JsonConstructor]
         internal SettingsService(ulong guildId)

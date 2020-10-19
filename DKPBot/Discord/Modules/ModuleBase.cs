@@ -1,6 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using Discord;
 using Discord.Commands;
 using NLog;
 
@@ -54,8 +52,5 @@ namespace DKPBot.Discord.Modules
                 .Trace(traceMsg);
             return traceMsg;
         }
-
-        protected async Task<IUserMessage> LogReplyAsync(string response, [CallerMemberName] string command = "") =>
-            await ReplyAsync(Debug(response, command));
     }
 }

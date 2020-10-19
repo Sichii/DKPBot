@@ -12,7 +12,7 @@ namespace DKPBot.Services.DependencyInjection
 
         internal GuildServiceProvider Build()
         {
-            if(GuildId == 0)
+            if (GuildId == 0)
                 throw new InvalidOperationException("No guild id provided");
 
             return new GuildServiceProvider(Services);

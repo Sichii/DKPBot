@@ -7,7 +7,7 @@ namespace DKPBot.Discord.Attributes
     public abstract class PreconditionAttributeBase : PreconditionAttribute
     {
         private static readonly Task<PreconditionResult> SUCCESS = Task.FromResult(PreconditionResult.FromSuccess());
-        protected Logger Log { get; }
+        protected Logger Log { get; set; }
 
         protected Task<PreconditionResult> Success
         {

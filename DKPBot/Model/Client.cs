@@ -15,9 +15,9 @@ namespace DKPBot.Model
 {
     internal static class Client
     {
+        internal static readonly DiscordSocketClient SocketClient;
         private static readonly string Token;
         private static readonly Logger Log;
-        internal static readonly DiscordSocketClient SocketClient;
         private static readonly IDictionary<ulong, IServiceProvider> Providers;
 
         static Client()
@@ -76,7 +76,7 @@ namespace DKPBot.Model
         }
 
         /// <summary>
-        /// Gets or creates a service provider for a guild.
+        ///     Gets or creates a service provider for a guild.
         /// </summary>
         /// <param name="guildId">the ID of a SocketGuild</param>
         internal static async Task<IServiceProvider> GetProviderAsync(ulong guildId)
@@ -86,8 +86,10 @@ namespace DKPBot.Model
             {
                 Log.Debug($"Creating new service provider for guild {guildId}.");
                 var services = new ServiceCollection();
+
                 var settings = await SettingsService.CreateAsync(guildId);
                 services.AddSingleton(settings);
+                services.AddSingleton(new EQDKPService(guildId));
 
                 var factory = new GuildServiceProviderFactory();
                 var builder = factory.CreateBuilder(services);

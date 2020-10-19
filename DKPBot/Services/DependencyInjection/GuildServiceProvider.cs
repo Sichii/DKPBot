@@ -13,6 +13,8 @@ namespace DKPBot.Services.DependencyInjection
 
         internal GuildServiceProvider(IServiceCollection services) => Services = services;
 
-        public object GetService(Type serviceType) => Services.First(service => service.ServiceType == serviceType).ImplementationInstance;
+        public object GetService(Type serviceType) =>
+            Services.First(service => service.ServiceType == serviceType)
+                .ImplementationInstance;
     }
 }
