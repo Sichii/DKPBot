@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace DKPBot.Definitions
 {
@@ -124,6 +125,36 @@ namespace DKPBot.Definitions
             list[index1] = list[index2];
             list[index2] = temp;
             return true;
+        }
+
+        internal static async IAsyncEnumerable<TResult> WhenEach<TResult>(this IAsyncEnumerable<Task<TResult>> tasks)
+        {
+            var remaining = new List<Task<TResult>>();
+            var exCount = 0;
+
+            await foreach (var task in tasks)
+                remaining.Add(task);
+
+            while (remaining.Count > exCount)
+            {
+                Task<TResult> task;
+
+                try
+                {
+                    task = await Task.WhenAny(remaining);
+                    remaining.Remove(task);
+                } catch
+                {
+                    exCount++;
+                    continue;
+                }
+
+                yield return task.Result;
+            }
+
+            if (exCount > 0)
+                throw new AggregateException(remaining.Where(task => task.Exception != null)
+                    .Select(task => task.Exception));
         }
     }
 }

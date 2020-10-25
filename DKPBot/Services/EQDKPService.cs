@@ -55,48 +55,70 @@ namespace DKPBot.Services
             Log.Debug("Prefetch complete.");
         }
 
-        public async Task<(int Id, string Name)> FindCharacter(string characterName)
+        public async IAsyncEnumerable<(int id, string name)> FindCharacter(string characterName)
         {
-            if (!CharacterCache.TryGetValue(characterName, out var characterId))
+            if (!CharacterCache.TryGetValue(characterName, out var id))
             {
-                //search for member info based on characterName
+                Log.Debug($@"Searching for character {characterName}...");
                 using var charResponse = await HttpClient.GetAsync($@"api.php?function=search&in=charname&for={characterName}");
                 await using var charInfoStream = await charResponse.Content.ReadAsStreamAsync();
                 var charInfo = XmlConvert.DeserializeObject<SearchResponse<Member>>(charInfoStream);
 
-                //if we dont find an exact match, we could get "relevant" matches
-                if (charInfo.Relevant == null)
+                if (charInfo.Relevant != null)
                 {
-                    //if we get a direct match, cache the character id so we dont have to search for it again
-                    characterId = charInfo.Direct.Result.Id;
-                    CharacterCache[characterName] = characterId;
+                    Log.Debug($@"{charInfo.Relevant.Results.Count} relevant matches found for {characterName}");
+                    foreach (var entry in charInfo.Relevant.Results)
+                        yield return (entry.Id, entry.Name);
+                } else if (charInfo.Direct != null)
+                {
+                    Log.Debug($@"Direct match found for {characterName}");
+                    CharacterCache[charInfo.Direct.Result.Name] = charInfo.Direct.Result.Id;
+                    yield return (charInfo.Direct.Result.Id, charInfo.Direct.Result.Name);
                 } else
-                {
-                    //if we only get relevant matches, grab the first and dont cache the ID
-                    var first = charInfo.Relevant.Results.First();
-                    characterId = first.Id;
-                    characterName = first.Name;
-                }
-            }
-
-            return (characterId, characterName);
+                    Log.Warn($@"No character matches found for {characterName}");
+            } else
+                yield return (id, characterName);
         }
 
-        public async Task<(string Name, int Points)> GetPoints(string characterName, string poolName)
+        public async IAsyncEnumerable<(string Name, int Points)> GetPointsForClass(EQClassFlags classFlags, string poolName)
         {
-            (var id, var name) = await FindCharacter(characterName);
-
-            //find dkp based on character id
-            using var pointsResponse = await HttpClient.GetAsync($@"api.php?function=points&filter=character&filterid={id}");
-            await using var pointsInfoStream = await pointsResponse.Content.ReadAsStreamAsync();
-            var pointsInfo = XmlConvert.DeserializeObject<Response>(pointsInfoStream);
-
-            //find the dkp for the pool specified in the 
-            var poolId = pointsInfo.MultidkpPools.MultidkpPool.First(pool => pool.Name.EqualsI(poolName))
+            Log.Debug($"Searching for class {classFlags}...");
+            using var response = await HttpClient.GetAsync(@"api.php?function=points");
+            await using var responseStream = await response.Content.ReadAsStreamAsync();
+            var info = XmlConvert.DeserializeObject<Response>(responseStream);
+            var poolId = info.MultidkpPools.MultidkpPool.First(pool => pool.Name.EqualsI(poolName))
                 .Id;
-            return (name, pointsInfo.Players.Player.First()
-                .Points.MultidkpPoints.First(pool => pool.MultidkpId == poolId)
-                .PointsCurrent);
+
+            foreach (var player in info.Players.Player)
+                if (Enum.TryParse(player.ClassName, true, out EQClassFlags playerClassFlag) && classFlags.HasFlag(playerClassFlag))
+                {
+                    var dkpPool = player.Points.MultidkpPoints.FirstOrDefault(pool => pool.MultidkpId == poolId);
+
+                    if (dkpPool != null && dkpPool.PointsEarned > 0)
+                        yield return (player.Name, dkpPool.PointsCurrent);
+                }
         }
+
+        public IAsyncEnumerable<(string Name, int Points)> GetPointsForCharacter(string characterName, string poolName) =>
+            FindCharacter(characterName)
+                .Select(async entry =>
+                {
+                    (var id, var name) = entry;
+                    Log.Debug($@"Retreiving dkp for character id {id}...");
+                    using var pointsResponse = await HttpClient.GetAsync($@"api.php?function=points&filter=character&filterid={id}");
+                    await using var pointsInfoStream = await pointsResponse.Content.ReadAsStreamAsync();
+                    var pointsInfo = XmlConvert.DeserializeObject<Response>(pointsInfoStream);
+
+                    //find the dkp for the pool specified in the 
+                    var poolId = pointsInfo.MultidkpPools.MultidkpPool.First(innerPool => innerPool.Name.EqualsI(poolName))
+                        .Id;
+                    var player = pointsInfo.Players.Player.FirstOrDefault();
+                    var pool = player?.Points.MultidkpPoints.FirstOrDefault(innerPool => innerPool.MultidkpId == poolId);
+
+                    return pool?.PointsEarned > 0 ? (name, points: (int?) pool.PointsCurrent) : default;
+                })
+                .WhenEach()
+                .Where(result => result.points.HasValue)
+                .Select(result => (result.name, points: result.points.Value));
     }
 }

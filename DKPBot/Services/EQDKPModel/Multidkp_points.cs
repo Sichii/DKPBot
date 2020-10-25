@@ -14,8 +14,8 @@ namespace DKPBot.Services.EQDKPModel
         [XmlElement(ElementName = "points_current_with_twink")]
         public string PointsCurrentWithTwink { get; set; }
 
-        [XmlElement(ElementName = "points_earned")]
-        public string PointsEarned { get; set; }
+        [XmlElement(ElementName = "points_earned", DataType = "int")]
+        public int PointsEarned { get; set; }
 
         [XmlElement(ElementName = "points_earned_with_twink")]
         public string PointsEarnedWithTwink { get; set; }
