@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CM-Chaos.Core" Version="1.0.0" />
     <PackageReference Include="Discord.Net" Version="2.2.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="2.0.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.7" />

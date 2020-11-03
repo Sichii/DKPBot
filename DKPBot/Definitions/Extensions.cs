@@ -1,19 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using DKPBot.Services;
 
 namespace DKPBot.Definitions
 {
     internal static class Extensions
     {
-        internal static bool ContainsI(this IEnumerable<string> enumerable, string str) =>
-            enumerable.Contains(str, StringComparer.OrdinalIgnoreCase);
-
-        internal static bool ContainsI(this string str1, string str2) => str1.IndexOf(str2, StringComparison.OrdinalIgnoreCase) != -1;
-
-        internal static bool EqualsI(this string str1, string str2) => str1.Equals(str2, StringComparison.OrdinalIgnoreCase);
-
         /// <summary>
         ///     Checks if a string is a valid URI.
         /// </summary>
@@ -41,6 +34,7 @@ namespace DKPBot.Definitions
         internal static float MeasureString(this string str) =>
             CONSTANTS.GRAPHICS.MeasureString(str, CONSTANTS.WHITNEY_FONT)
                 .Width;
+
 
         /// <summary>
         ///     Normalizes the widths of all strings in the collection by adding spaces to shorter strings so that they match the
@@ -127,34 +121,6 @@ namespace DKPBot.Definitions
             return true;
         }
 
-        internal static async IAsyncEnumerable<TResult> WhenEach<TResult>(this IAsyncEnumerable<Task<TResult>> tasks)
-        {
-            var remaining = new List<Task<TResult>>();
-            var exCount = 0;
-
-            await foreach (var task in tasks)
-                remaining.Add(task);
-
-            while (remaining.Count > exCount)
-            {
-                Task<TResult> task;
-
-                try
-                {
-                    task = await Task.WhenAny(remaining);
-                    remaining.Remove(task);
-                } catch
-                {
-                    exCount++;
-                    continue;
-                }
-
-                yield return task.Result;
-            }
-
-            if (exCount > 0)
-                throw new AggregateException(remaining.Where(task => task.Exception != null)
-                    .Select(task => task.Exception));
-        }
+        internal static string GuildDataPath(this IGuildService service) => $@"{CONSTANTS.DATA_DIR}\{service.GuildId}";
     }
 }

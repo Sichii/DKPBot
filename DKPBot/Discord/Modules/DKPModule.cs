@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Chaos.Core.Extensions;
 using Discord;
 using Discord.Commands;
 using DKPBot.Definitions;
@@ -15,12 +16,14 @@ namespace DKPBot.Discord.Modules
     public class DKPModule : ModuleBase
     {
         private readonly EQDKPService EQDKPService;
+        private readonly AliasService AliasService;
         private readonly SettingsService SettingsService;
         protected override Logger Log { get; }
 
-        public DKPModule(EQDKPService eqDkpService, SettingsService settingsService)
+        public DKPModule(EQDKPService eqDkpService, AliasService aliasService, SettingsService settingsService)
         {
             EQDKPService = eqDkpService;
+            AliasService = aliasService;
             SettingsService = settingsService;
             Log = eqDkpService.Log;
         }
@@ -40,26 +43,36 @@ namespace DKPBot.Discord.Modules
                 var embedBuilder = new EmbedBuilder();
                 var characterStrBuilder = new StringBuilder();
                 var classStrBuilder = new StringBuilder();
+                var aliases = await AliasService.Aliases.Where(alias => alias.Result.EqualsI(characterNameOrClass))
+                    .Select(alias => alias.Original)
+                    .ToListAsync();
 
-                await foreach ((var name, var points) in EQDKPService
-                    .GetPointsForCharacter(characterNameOrClass, SettingsService.DKPPoolName)
-                    .OrderByDescending(entry => entry.Points))
-                    characterStrBuilder.AppendLine($@"{name}: {points}");
+                aliases.Add(characterNameOrClass);
+                aliases = aliases.Distinct()
+                    .ToList();
+
+                async Task DkpForNameOrClass(string nameOrClass)
+                {
+                    await foreach ((var name, var points) in EQDKPService
+                        .GetPointsForCharacter(nameOrClass, SettingsService.DKPPoolName)
+                        .OrderByDescending(entry => entry.Points))
+                        characterStrBuilder.AppendLine($@"{name}: {points}");
+
+                    Log.Trace($@"Fetching dkp for {nameOrClass}");
+                    if (Enum.TryParse(nameOrClass, true, out EQClassFlags classFlag))
+                    {
+                        await foreach ((var name, var points) in EQDKPService.GetPointsForClass(classFlag, SettingsService.DKPPoolName)
+                            .OrderByDescending(entry => entry.Points))
+                            classStrBuilder.AppendLine($@"{name}: {points}");
+
+                        embedBuilder.AddField($@"{classFlag}", classStrBuilder.ToString());
+                    }
+                }
+
+                await Task.WhenAll(aliases.Select(DkpForNameOrClass));
 
                 if (characterStrBuilder.Length > 0)
-                    embedBuilder.AddField($@"Character(s): {characterNameOrClass}", characterStrBuilder.ToString());
-
-                Log.Trace($@"Fetching dkp for {characterNameOrClass}");
-                if (Enum.TryParse(characterNameOrClass, true, out EQClassFlags classFlag))
-                {
-                    var className = classFlag.ToString();
-
-                    await foreach ((var name, var points) in EQDKPService.GetPointsForClass(classFlag, SettingsService.DKPPoolName)
-                        .OrderByDescending(entry => entry.Points))
-                        classStrBuilder.AppendLine($@"{name}: {points}");
-
-                    embedBuilder.AddField($@"Class: {characterNameOrClass}", classStrBuilder.ToString());
-                }
+                    embedBuilder.AddField($@"Character(s)", characterStrBuilder.ToString());
 
                 if (embedBuilder.Length == 0)
                     await ReplyAsync($@"No matches found for ""{characterNameOrClass}""");

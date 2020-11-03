@@ -28,7 +28,7 @@ namespace DKPBot.Services
         internal SettingsService(ulong guildId)
         {
             Log = LogManager.GetLogger($"Settings({guildId})");
-            SettingsPath = $@"{CONSTANTS.DATA_DIR}\{guildId}\settings.json";
+            SettingsPath = CreateSettingsPath(guildId);
             GuildId = guildId;
             Prefix = "!";
         }
@@ -47,14 +47,16 @@ namespace DKPBot.Services
 
         internal static async Task<SettingsService> CreateAsync(ulong guildId)
         {
-            var path = $@"{CONSTANTS.DATA_DIR}\{guildId}\settings.json";
+            var path = CreateSettingsPath(guildId);
             if (File.Exists(path))
             {
-                var json = await File.ReadAllTextAsync($@"{CONSTANTS.DATA_DIR}\{guildId}\settings.json");
+                var json = await File.ReadAllTextAsync(path);
                 return JsonConvert.DeserializeObject<SettingsService>(json);
             }
 
             return new SettingsService(guildId);
         }
+
+        private static string CreateSettingsPath(ulong guildId) => $@"{CONSTANTS.DATA_DIR}\{guildId}\settings.json";
     }
 }

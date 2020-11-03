@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Chaos.Core.Extensions;
 using DKPBot.Definitions;
 using DKPBot.Services.EQDKPModel;
 using Newtonsoft.Json;
@@ -55,7 +56,7 @@ namespace DKPBot.Services
             Log.Debug("Prefetch complete.");
         }
 
-        public async IAsyncEnumerable<(int id, string name)> FindCharacter(string characterName)
+        public async IAsyncEnumerable<(int Id, string Name)> FindCharacter(string characterName)
         {
             if (!CharacterCache.TryGetValue(characterName, out var id))
             {

@@ -88,7 +88,9 @@ namespace DKPBot.Model
                 var services = new ServiceCollection();
 
                 var settings = await SettingsService.CreateAsync(guildId);
+                var aliases = await AliasService.CreateAsync(guildId);
                 services.AddSingleton(settings);
+                services.AddSingleton(aliases);
                 services.AddSingleton(new EQDKPService(guildId));
 
                 var factory = new GuildServiceProviderFactory();
