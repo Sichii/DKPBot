@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Discord;
 using Discord.Commands;
 using DKPBot.Definitions;
 using DKPBot.Discord.Attributes;
@@ -32,7 +31,7 @@ namespace DKPBot.Discord.Modules
 
             SettingsService.Prefix = prefix;
             await SettingsService.SerializeAsync();
-            await Context.Message.AddReactionAsync(new Emoji("👌"));
+            await Context.Message.AddReactionAsync(Emojis.OK_HAND);
         }
 
         [Command("setDkpPoolName", RunMode = RunMode.Async), Summary("Sets the dkp pool name to be used by the dkp service"), RequirePrivilege(Privilege.Elevated)]
@@ -42,7 +41,7 @@ namespace DKPBot.Discord.Modules
 
             SettingsService.DKPPoolName = dkpPoolName;
             await SettingsService.SerializeAsync();
-            await Context.Message.AddReactionAsync(new Emoji("👌"));
+            await Context.Message.AddReactionAsync(Emojis.OK_HAND);
         }
 
         [Command("help", RunMode = RunMode.Async), Summary("The message you're currently reading")]

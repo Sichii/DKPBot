@@ -58,7 +58,7 @@ namespace DKPBot.Discord.Modules
                         .OrderByDescending(entry => entry.Points))
                         characterStrBuilder.AppendLine($@"{name}: {points}");
 
-                    Log.Trace($@"Fetching dkp for {nameOrClass}");
+                    Trace($@"Fetching dkp for {nameOrClass}");
                     if (Enum.TryParse(nameOrClass, true, out EQClassFlags classFlag))
                     {
                         await foreach ((var name, var points) in EQDKPService.GetPointsForClass(classFlag, SettingsService.DKPPoolName)
@@ -66,6 +66,7 @@ namespace DKPBot.Discord.Modules
                             classStrBuilder.AppendLine($@"{name}: {points}");
 
                         embedBuilder.AddField($@"{classFlag}", classStrBuilder.ToString());
+                        classStrBuilder.Clear();
                     }
                 }
 
@@ -80,7 +81,7 @@ namespace DKPBot.Discord.Modules
                     await ReplyAsync($@"Results for ""{characterNameOrClass}""", false, embedBuilder.Build());
             } catch (Exception e)
             {
-                Log.Error(e);
+                Exception(e);
             }
         }
     }

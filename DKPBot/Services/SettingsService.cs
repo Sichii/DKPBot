@@ -2,38 +2,30 @@
 using System.Threading.Tasks;
 using DKPBot.Definitions;
 using Newtonsoft.Json;
-using NLog;
 
 namespace DKPBot.Services
 {
     [JsonObject]
-    public class SettingsService : IGuildService
+    public class SettingsService : GuildServiceBase, ISerializableGuildService
     {
         [JsonIgnore]
         private readonly string SettingsPath;
 
         [JsonProperty]
-        public ulong GuildId { get; set; }
+        public string Prefix { get; set; }
 
         [JsonProperty]
-        internal string Prefix { get; set; }
-
-        [JsonProperty]
-        internal string DKPPoolName { get; set; }
-
-        [JsonIgnore]
-        public Logger Log { get; }
+        public string DKPPoolName { get; set; }
 
         [JsonConstructor]
-        internal SettingsService(ulong guildId)
+        public SettingsService(ulong guildId)
+            : base(guildId)
         {
-            Log = LogManager.GetLogger($"Settings({guildId})");
             SettingsPath = CreateSettingsPath(guildId);
-            GuildId = guildId;
             Prefix = "!";
         }
 
-        internal Task SerializeAsync()
+        public Task SerializeAsync()
         {
             Log.Debug("Saving settings to file...");
             var json = JsonConvert.SerializeObject(this, Formatting.Indented);
@@ -45,16 +37,13 @@ namespace DKPBot.Services
             return File.WriteAllTextAsync(SettingsPath, json);
         }
 
-        internal static async Task<SettingsService> CreateAsync(ulong guildId)
+        public async Task PopulateAsync()
         {
-            var path = CreateSettingsPath(guildId);
-            if (File.Exists(path))
+            if (File.Exists(SettingsPath))
             {
-                var json = await File.ReadAllTextAsync(path);
-                return JsonConvert.DeserializeObject<SettingsService>(json);
+                var json = await File.ReadAllTextAsync(SettingsPath);
+                JsonConvert.PopulateObject(json, this);
             }
-
-            return new SettingsService(guildId);
         }
 
         private static string CreateSettingsPath(ulong guildId) => $@"{CONSTANTS.DATA_DIR}\{guildId}\settings.json";

@@ -7,6 +7,6 @@ namespace DKPBot.Services.DependencyInjection
     {
         public GuildServiceBuilder CreateBuilder(IServiceCollection services) => new GuildServiceBuilder(services);
 
-        public IServiceProvider CreateServiceProvider(GuildServiceBuilder containerBuilder) => containerBuilder.Build();
+        public IServiceProvider CreateServiceProvider(GuildServiceBuilder containerBuilder) => containerBuilder.BuildAsync();
     }
 }

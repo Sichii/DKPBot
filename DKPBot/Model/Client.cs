@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -18,6 +19,7 @@ namespace DKPBot.Model
         internal static readonly DiscordSocketClient SocketClient;
         private static readonly string Token;
         private static readonly Logger Log;
+        private static readonly GuildServiceProviderFactory Factory;
         private static readonly IDictionary<ulong, IServiceProvider> Providers;
 
         static Client()
@@ -25,6 +27,7 @@ namespace DKPBot.Model
             Token = File.ReadAllText(CONSTANTS.TOKEN_PATH);
             Providers = new Dictionary<ulong, IServiceProvider>();
             Log = LogManager.GetLogger("Client");
+            Factory = new GuildServiceProviderFactory();
 
             var config = new DiscordSocketConfig { LogLevel = LogSeverity.Debug };
 
@@ -37,7 +40,7 @@ namespace DKPBot.Model
 
         internal static async Task LoginAsync()
         {
-            var defaultProvider = await GetProviderAsync(ulong.MaxValue);
+            var defaultProvider = await CreateProviderAsync(ulong.MaxValue);
             await CommandHandler.ConfigureAsync(defaultProvider);
             await SocketClient.LoginAsync(TokenType.Bot, Token);
             await SocketClient.StartAsync();
@@ -79,25 +82,26 @@ namespace DKPBot.Model
         ///     Gets or creates a service provider for a guild.
         /// </summary>
         /// <param name="guildId">the ID of a SocketGuild</param>
-        internal static async Task<IServiceProvider> GetProviderAsync(ulong guildId)
+        internal static async Task<IServiceProvider> CreateProviderAsync(ulong guildId)
         {
             //if we dont have a serviceprovider for this guild
             if (!Providers.TryGetValue(guildId, out var serviceProvider))
             {
-                Log.Debug($"Creating new service provider for guild {guildId}.");
                 var services = new ServiceCollection();
 
-                var settings = await SettingsService.CreateAsync(guildId);
-                var aliases = await AliasService.CreateAsync(guildId);
-                services.AddSingleton(settings);
-                services.AddSingleton(aliases);
-                services.AddSingleton(new EQDKPService(guildId));
+                Log.Debug($"Building new service provider for guild {guildId}...");
+                var builder = Factory.CreateBuilder(services);
 
-                var factory = new GuildServiceProviderFactory();
-                var builder = factory.CreateBuilder(services);
+                Log.Debug($"Configuring services for guild {guildId}...");
                 builder.Configure(guildId);
-                serviceProvider = factory.CreateServiceProvider(builder);
+
+                serviceProvider = Factory.CreateServiceProvider(builder);
                 Providers[guildId] = serviceProvider;
+
+                Log.Debug($"Populating serializable services for guild {guildId}...");
+                foreach (var service in services.Select(service => service.ImplementationInstance)
+                    .OfType<ISerializableGuildService>())
+                    await service.PopulateAsync();
             }
 
             return serviceProvider;

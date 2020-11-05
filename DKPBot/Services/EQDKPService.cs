@@ -9,27 +9,21 @@ using DKPBot.Definitions;
 using DKPBot.Services.EQDKPModel;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NLog;
 
 namespace DKPBot.Services
 {
-    public class EQDKPService : IGuildService
+    public class EQDKPService : GuildServiceBase
     {
         private static readonly string EQDKP_PATH = $@"{CONSTANTS.DATA_DIR}\EQDKP.json";
         private readonly Dictionary<string, int> CharacterCache;
         private readonly HttpClient HttpClient;
-        public ulong GuildId { get; }
-        public Logger Log { get; }
 
         public EQDKPService(ulong guildId)
+            : base(guildId)
         {
-            GuildId = guildId;
-
             //dont fetch for default guild id
             if (guildId == ulong.MaxValue)
                 return;
-
-            Log = LogManager.GetLogger($"EQDKP({GuildId})");
 
             var json = File.ReadAllText(EQDKP_PATH);
             var eqdkp = JsonConvert.DeserializeObject<JObject>(json)[GuildId.ToString()];
@@ -42,6 +36,8 @@ namespace DKPBot.Services
             CharacterCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             var unused = PrefetchCharacterIds();
         }
+
+        public static Task<EQDKPService> CreateAsync(ulong guildId) => Task.FromResult(new EQDKPService(guildId));
 
         public async Task PrefetchCharacterIds()
         {

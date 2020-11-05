@@ -51,7 +51,7 @@ namespace DKPBot.Model
         {
             var msg = (SocketUserMessage) message;
             var context = new SocketCommandContext(Client.SocketClient, msg);
-            var serviceProvider = await Client.GetProviderAsync(context.Guild.Id);
+            var serviceProvider = await Client.CreateProviderAsync(context.Guild.Id);
 
             //pos will be the place we're at in the message after we check for the command prefix
             var pos = 0;

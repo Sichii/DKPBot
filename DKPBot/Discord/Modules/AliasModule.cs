@@ -30,7 +30,7 @@ namespace DKPBot.Discord.Modules
                 await AliasService.SerializeAsync();
             });
 
-            await Context.Message.AddReactionAsync(new Emoji("👌"));
+            await Context.Message.AddReactionAsync(Emojis.OK_HAND);
         }
 
         [Command("rmAlias", RunMode = RunMode.Async), Summary("Removes a previously created alias.")]
@@ -50,9 +50,9 @@ namespace DKPBot.Discord.Modules
             });
 
             if(removeResult)
-                await Context.Message.AddReactionAsync(new Emoji("👌"));
+                await Context.Message.AddReactionAsync(Emojis.OK_HAND);
             else
-                await Context.Message.AddReactionAsync(new Emoji("❌"));
+                await Context.Message.AddReactionAsync(Emojis.X);
         }
 
         [Command("aliases", RunMode = RunMode.Async), Summary("Lists all aliases currently recognized.")]

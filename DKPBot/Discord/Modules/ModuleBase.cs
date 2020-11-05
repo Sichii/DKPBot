@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 using Discord.Commands;
 using NLog;
 
@@ -11,11 +12,20 @@ namespace DKPBot.Discord.Modules
     {
         protected abstract Logger Log { get; }
 
+
         protected Logger GetPrefixedLogger([CallerMemberName] string command = "")
         {
             var newLogger = Log.WithProperty("RequestedBy", $"[{Context.User.Username}]");
             newLogger.SetProperty("Command", $"[{command}]");
             return newLogger;
+        }
+
+        protected string Exception(Exception ex, [CallerMemberName] string command = "")
+        {
+            GetPrefixedLogger(command)
+                .Error(ex);
+
+            return ex.Message;
         }
 
         protected string Error(string errorMsg, [CallerMemberName] string command = "")

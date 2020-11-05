@@ -4,32 +4,26 @@ using Chaos.Core.Collections.Synchronized.Awaitable;
 using DKPBot.Definitions;
 using DKPBot.Services.AliasModel;
 using Newtonsoft.Json;
-using NLog;
 
 namespace DKPBot.Services
 {
     [JsonObject]
-    public class AliasService : IGuildService
+    public class AliasService : GuildServiceBase, ISerializableGuildService
     {
         [JsonIgnore]
         private readonly string AliasPath;
         [JsonProperty]
-        public ulong GuildId { get; }
-        [JsonProperty]
         public AwaitableHashSet<Alias> Aliases { get; private set; }
-        [JsonIgnore]
-        public Logger Log { get; }
 
         [JsonConstructor]
-        internal AliasService(ulong guildId)
+        public AliasService(ulong guildId)
+            : base(guildId)
         {
-            GuildId = guildId;
-            Log = LogManager.GetLogger($"Alias({guildId})");
             AliasPath = CreateAliasPath(guildId);
             Aliases = new AwaitableHashSet<Alias>();
         }
 
-        internal Task SerializeAsync()
+        public Task SerializeAsync()
         {
             Log.Debug("Saving aliases to file...");
             var json = JsonConvert.SerializeObject(this, Formatting.Indented);
@@ -41,16 +35,13 @@ namespace DKPBot.Services
             return File.WriteAllTextAsync(AliasPath, json);
         }
 
-        internal static async Task<AliasService> CreateAsync(ulong guildId)
+        public async Task PopulateAsync()
         {
-            var path = CreateAliasPath(guildId);
-            if (File.Exists(path))
+            if (File.Exists(AliasPath))
             {
-                var json = await File.ReadAllTextAsync(path);
-                return JsonConvert.DeserializeObject<AliasService>(json);
+                var json = await File.ReadAllTextAsync(AliasPath);
+                JsonConvert.PopulateObject(json, this);
             }
-
-            return new AliasService(guildId);
         }
 
         private static string CreateAliasPath(ulong guildId) => $@"{CONSTANTS.DATA_DIR}\{guildId}\aliases.json";
