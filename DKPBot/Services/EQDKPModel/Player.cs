@@ -11,8 +11,8 @@ namespace DKPBot.Services.EQDKPModel
         [XmlElement(ElementName = "name")]
         public string Name { get; set; }
 
-        [XmlElement(ElementName = "active")]
-        public string Active { get; set; }
+        [XmlElement(ElementName = "active", DataType = "boolean")]
+        public bool Active { get; set; }
 
         [XmlElement(ElementName = "hidden")]
         public string Hidden { get; set; }

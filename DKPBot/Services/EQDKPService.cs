@@ -26,15 +26,20 @@ namespace DKPBot.Services
                 return;
 
             var json = File.ReadAllText(EQDKP_PATH);
-            var eqdkp = JsonConvert.DeserializeObject<JObject>(json)[GuildId.ToString()];
-            var apiKey = eqdkp.Value<string>("ApiKey");
-            var baseUrl = eqdkp.Value<string>("BaseUrl");
+            var eqdkp = JsonConvert.DeserializeObject<JObject>(json);
 
-            HttpClient = new HttpClient { BaseAddress = new Uri(baseUrl) };
-            HttpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", apiKey);
+            if (eqdkp.TryGetValue(GuildId.ToString(), out var guildSettings))
+            {
+                var apiKey = guildSettings.Value<string>("ApiKey");
+                var baseUrl = guildSettings.Value<string>("BaseUrl");
 
-            CharacterCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            var unused = PrefetchCharacterIds();
+                HttpClient = new HttpClient { BaseAddress = new Uri(baseUrl) };
+                HttpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", apiKey);
+
+                CharacterCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                var unused = PrefetchCharacterIds();
+            } else
+                Log.Error("EQDKP Service created without required guild settings.");
         }
 
         public static Task<EQDKPService> CreateAsync(ulong guildId) => Task.FromResult(new EQDKPService(guildId));
@@ -91,7 +96,7 @@ namespace DKPBot.Services
                 {
                     var dkpPool = player.Points.MultidkpPoints.FirstOrDefault(pool => pool.MultidkpId == poolId);
 
-                    if (dkpPool != null && dkpPool.PointsEarned > 0)
+                    if (player.Active && (dkpPool?.PointsEarned > 0 || dkpPool?.PointsAdjustment > 0))
                         yield return (player.Name, dkpPool.PointsCurrent);
                 }
         }
@@ -112,10 +117,13 @@ namespace DKPBot.Services
                     var player = pointsInfo.Players.Player.FirstOrDefault();
                     var pool = player?.Points.MultidkpPoints.FirstOrDefault(innerPool => innerPool.MultidkpId == poolId);
 
-                    return pool?.PointsEarned > 0 ? (name, points: (int?) pool.PointsCurrent) : default;
+                    if (player?.Active == true && (pool?.PointsEarned > 0 || pool?.PointsAdjustment > 0))
+                        return (name, points: (int?) pool.PointsCurrent);
+
+                    return default;
                 })
                 .WhenEach()
                 .Where(result => result.points.HasValue)
-                .Select(result => (result.name, points: result.points.Value));
+                .Select(result => (result.name, points: result.points ?? default));
     }
 }
